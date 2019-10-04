@@ -18,7 +18,7 @@ namespace ParallelLaba1
         {
             for (int i = id1; i <= id2; i++)
                 result += a[i];
-            var workTime = _rnd.Next(1500, 5500);
+            var workTime = _rnd.Next(150, 550);
             Thread.Sleep(workTime);
         }
         public int getResult()

@@ -20,7 +20,7 @@ namespace ParallelLaba1
         public WorkThread()
         {
             _thread = new Thread(WorkLoop);
-            _thread.IsBackground = false;
+            _thread.IsBackground = true;
             _state = WorkThreadState.Idle;
             _thread.Start();
         }
