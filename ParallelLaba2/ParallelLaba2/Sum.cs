@@ -8,8 +8,9 @@ namespace ParallelLaba1
     class Sum
     {
         static readonly Random _rnd = new Random();
-        private int result;
-        private int[] a;
+        private int resultOfSum;
+        private int sumDifInSquare;
+        public int[] a;
         public Sum (int[] a)
         {
             this.a = a;
@@ -17,13 +18,24 @@ namespace ParallelLaba1
         public void sumValues(int id1, int id2)
         {
             for (int i = id1; i <= id2; i++)
-                result += a[i];
+                resultOfSum += a[i];
+            var workTime = _rnd.Next(150, 550);
+            Thread.Sleep(workTime);
+        }
+        public void squareDifValues(int id1, int id2, int mx)
+        {
+            for (int i = id1; i <= id2; i++)
+                sumDifInSquare += (a[i]-mx)*(a[i] - mx);
             var workTime = _rnd.Next(150, 550);
             Thread.Sleep(workTime);
         }
         public int getResult()
         {
-            return result;
+            return resultOfSum;
+        }
+        public int getSumDifInSquare()
+        {
+            return sumDifInSquare;
         }
     }
 }

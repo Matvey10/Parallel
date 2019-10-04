@@ -7,9 +7,12 @@ namespace ParallelLaba1
 {
     class Step1
     {
+        private int mx;
+        private int size;
         public List<Sum> Results;
         public Step1(int size)
         {
+            this.size = size;
             int[] X = new int[size];
             Random rand = new Random();
             for (int i = 0; i < size; i++)
@@ -24,6 +27,12 @@ namespace ParallelLaba1
                 Results.Add(sum);
             }
         }
+
+        public int getMx ()
+        {
+            return mx;
+        }
+
         public int sumResults()
         {
             int sum = 0;
@@ -35,7 +44,7 @@ namespace ParallelLaba1
         {
             TaskManager threadManager = new TaskManager(4);
             threadManager.TaskManagerWorkDone += WorkDone;
-            //int Res = 0;
+            //threadManager.TaskManagerWorkDone += startStep2;          
             for (int i = 0; i < size / 5; i++)
             {
                 //Sum sum = new Sum(X);
@@ -52,8 +61,16 @@ namespace ParallelLaba1
             for (int i = 0; i < this.Results.Count; i++)
                 Console.WriteLine($"сумма = {this.Results[i].getResult()}");
             Console.WriteLine($"итоговая сумма = {this.sumResults()}");
+            mx = this.sumResults() / size;
+            startStep2();
             /*for (int i=0; i < Results.Count; i++)
                 Console.WriteLine(Results[i]);*/
+        }
+        public void startStep2 ()
+        {
+            Step2 step2 = new Step2(size, this.getMx(), this.Results[0].a);
+            step2.Run(size);
+            Thread.Sleep(5000);
         }
         
     }
