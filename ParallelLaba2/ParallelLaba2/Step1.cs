@@ -7,7 +7,7 @@ namespace ParallelLaba1
 {
     class Step1
     {
-        private int mx;
+        private double mx;
         private int size;
         public List<Sum> Results;
         public Step1(int size)
@@ -15,42 +15,42 @@ namespace ParallelLaba1
             this.size = size;
             int[] X = new int[size];
             Random rand = new Random();
-            for (int i = 0; i < size; i++)
+            for (var i = 0; i < size; i++)
             {
-                X[i] = rand.Next(1, size);// size=100
-                Console.WriteLine($"X[{i}] = {X[i]}");
+                X[i] = rand.Next(1, 1000);
+                //Console.WriteLine($"X[{i}] = {X[i]}");
             }
             Results = new List<Sum>();
-            for (int i = 0; i < size / 5; i++)
+            for (int i = 0; i < size / 1000; i++)
             {
                 Sum sum = new Sum(X);
                 Results.Add(sum);
             }
         }
 
-        public int getMx ()
+        public double getMx ()
         {
             return mx;
         }
 
-        public int sumResults()
+        public ulong sumResults()
         {
-            int sum = 0;
+            ulong sum = 0;
             for (int i = 0; i < this.Results.Count; i++)
-                sum += this.Results[i].getResult();
+                sum += (ulong)this.Results[i].getResult();
             return sum;
         }
         public void Run(int size)
         {
-            TaskManager threadManager = new TaskManager(4);
+            TaskManager threadManager = new TaskManager(10);
             threadManager.TaskManagerWorkDone += WorkDone;
             //threadManager.TaskManagerWorkDone += startStep2;          
-            for (int i = 0; i < size / 5; i++)
+            for (int i = 0; i < size / 1000; i++)
             {
                 //Sum sum = new Sum(X);
                 var number = i;
-                threadManager.AddTask(() => Results[number].sumValues(number * 5, (number * 5) + 4));//добавили задание по суммированию части массива
-                Console.WriteLine("Ожидание завершения");
+                threadManager.AddTask(() => Results[number].sumValues(number * 1000, (number * 1000) + 999));//добавили задание по суммированию части массива
+               // Console.WriteLine("Ожидание завершения");
                 //Results.Add(sum);
                 //Console.WriteLine($"Res = {Res}");
             }
@@ -58,10 +58,10 @@ namespace ParallelLaba1
         public void WorkDone()
         {
             Console.WriteLine("Менеджер завершил все задачи.");
-            for (int i = 0; i < this.Results.Count; i++)
-                Console.WriteLine($"сумма = {this.Results[i].getResult()}");
+            /*for (int i = 0; i < this.Results.Count; i++)
+                Console.WriteLine($"сумма = {this.Results[i].getResult()}");*/
             Console.WriteLine($"итоговая сумма = {this.sumResults()}");
-            mx = this.sumResults() / size;
+            mx = (double)(this.sumResults()) / size;
             startStep2();
             /*for (int i=0; i < Results.Count; i++)
                 Console.WriteLine(Results[i]);*/
@@ -70,7 +70,7 @@ namespace ParallelLaba1
         {
             Step2 step2 = new Step2(size, this.getMx(), this.Results[0].a);
             step2.Run(size);
-            Thread.Sleep(5000);
+           // Thread.Sleep(5000);
         }
         
     }

@@ -50,7 +50,15 @@ namespace ParallelLaba1
                 _workingThreads.Remove(workThread);
                 _idleThreads.Add(workThread);
                 if (_actionsQueue.IsEmpty && _workingThreads.Count == 0)
+                {
+                    //TaskManagerWorkDone?.Invoke();//добавил цикл по закрытию потоков 
+                    foreach (var thrd in _idleThreads)
+                    {
+                        thrd.Terminate();
+                    }
                     TaskManagerWorkDone?.Invoke();
+                }
+
             }
         }
 

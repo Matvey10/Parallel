@@ -7,9 +7,9 @@ namespace ParallelLaba1
 {
     class Sum
     {
-        static readonly Random _rnd = new Random();
+       // static readonly Random _rnd = new Random();
         private int resultOfSum;
-        private int sumDifInSquare;
+        private double sumDifInSquare;
         public int[] a;
         public Sum (int[] a)
         {
@@ -19,21 +19,17 @@ namespace ParallelLaba1
         {
             for (int i = id1; i <= id2; i++)
                 resultOfSum += a[i];
-            var workTime = _rnd.Next(150, 550);
-            Thread.Sleep(workTime);
         }
-        public void squareDifValues(int id1, int id2, int mx)
+        public void squareDifValues(int id1, int id2, double mx)
         {
             for (int i = id1; i <= id2; i++)
-                sumDifInSquare += (a[i]-mx)*(a[i] - mx);
-            var workTime = _rnd.Next(150, 550);
-            Thread.Sleep(workTime);
+                sumDifInSquare += Math.Pow(a[i]-mx, 2);
         }
         public int getResult()
         {
             return resultOfSum;
         }
-        public int getSumDifInSquare()
+        public double getSumDifInSquare()
         {
             return sumDifInSquare;
         }

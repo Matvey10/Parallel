@@ -8,7 +8,7 @@ namespace ParallelLaba1
     public class WorkThread
     {
         private readonly AutoResetEvent _waitHandler = new AutoResetEvent(false);
-        private readonly Thread _thread;
+        private readonly Thread _thread;//readonly
         private bool _needToTerminate = false;
         private WorkThreadState _state;
 
@@ -20,7 +20,8 @@ namespace ParallelLaba1
         public WorkThread()
         {
             _thread = new Thread(WorkLoop);
-            _thread.IsBackground = true;
+            _thread.IsBackground = false;//true
+
             _state = WorkThreadState.Idle;
             _thread.Start();
         }
