@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Collections.Concurrent;
 
 namespace ParallelLaba1
 {
@@ -10,6 +11,9 @@ namespace ParallelLaba1
         public double mx;
         public double Dx;
         private int size;
+        public readonly int ThreadsCount = 10;
+        //TaskManager threadManager;
+        private ConcurrentQueue<Action> _actionsQueue;
         public Step2(int size, double mx, int[] X)
         {
             this.mx = mx;
@@ -25,14 +29,16 @@ namespace ParallelLaba1
         {
             TaskManager threadManager = new TaskManager(10);
             threadManager.TaskManagerWorkDone += ComputeDxDone;
-            //int Res = 0;
             for (int i = 0; i < size / 1000; i++)
             {
                 var number = i;
-                threadManager.AddTask(() => Results[number].squareDifValues(number * 1000, (number * 1000) + 999, mx));//добавили задание по суммированию части массива
+                _actionsQueue = new ConcurrentQueue<Action>();
+                _actionsQueue.Enqueue(() => Results[number].sumValues(number * 1000, (number * 1000) + 999));
+                //threadManager.AddTask(() => Results[number].sumValues(number * 1000, (number * 1000) + 999));//добавили задание по суммированию части массива
+                //threadManager.AddTask(() => Results[number].squareDifValues(number * 1000, (number * 1000) + 999, mx));//добавили задание по суммированию части массива
                 //Console.WriteLine("Ожидание завершения");
             }
-
+            threadManager.AddTasks(ref _actionsQueue);
         }
         public ulong sumResults()
         {
@@ -44,8 +50,14 @@ namespace ParallelLaba1
         public void ComputeDxDone()
         {
             Console.WriteLine("Менеджер завершил работу по вычислению выборочной дисперсии");
+            /*for (int i = 0; i < this.Results.Count; i++)
+                Console.WriteLine($"сумма = {this.Results[i].getResult()}");*/
             Console.WriteLine($"итоговая сумма = {this.sumResults()}");
             Dx = (double)(this.sumResults()) / size;
+            /*foreach (var thread in threadManager.getThreads())
+            {
+                thread.Terminate();
+            }*/
             Console.WriteLine($"мат ожидание = {mx}; дисперсия = {Dx}");
         }
     }

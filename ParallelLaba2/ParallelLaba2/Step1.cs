@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Linq;
+using System.Collections.Concurrent;
 namespace ParallelLaba1
 {
     class Step1
@@ -10,6 +11,9 @@ namespace ParallelLaba1
         private double mx;
         private int size;
         public List<Sum> Results;
+        //public const int ThreadsCount = 10;
+        TaskManager threadManager;
+        private ConcurrentQueue<Action> _actionsQueue;
         public Step1(int size)
         {
             this.size = size;
@@ -18,7 +22,6 @@ namespace ParallelLaba1
             for (var i = 0; i < size; i++)
             {
                 X[i] = rand.Next(1, 1000);
-                //Console.WriteLine($"X[{i}] = {X[i]}");
             }
             Results = new List<Sum>();
             for (int i = 0; i < size / 1000; i++)
@@ -42,18 +45,18 @@ namespace ParallelLaba1
         }
         public void Run(int size)
         {
-            TaskManager threadManager = new TaskManager(10);
-            threadManager.TaskManagerWorkDone += WorkDone;
-            //threadManager.TaskManagerWorkDone += startStep2;          
+            threadManager = new TaskManager(10);
+            threadManager.TaskManagerWorkDone += WorkDone;         
             for (int i = 0; i < size / 1000; i++)
             {
                 //Sum sum = new Sum(X);
                 var number = i;
-                threadManager.AddTask(() => Results[number].sumValues(number * 1000, (number * 1000) + 999));//добавили задание по суммированию части массива
-               // Console.WriteLine("Ожидание завершения");
-                //Results.Add(sum);
-                //Console.WriteLine($"Res = {Res}");
+                _actionsQueue = new ConcurrentQueue<Action>();
+                _actionsQueue.Enqueue(() => Results[number].sumValues(number * 1000, (number * 1000) + 999));
+                //threadManager.AddTask(() => Results[number].sumValues(number * 1000, (number * 1000) + 999));//добавили задание по суммированию части массива
             }
+            threadManager.AddTasks(ref _actionsQueue);
+            //thread.startwork
         }
         public void WorkDone()
         {
@@ -62,15 +65,19 @@ namespace ParallelLaba1
                 Console.WriteLine($"сумма = {this.Results[i].getResult()}");*/
             Console.WriteLine($"итоговая сумма = {this.sumResults()}");
             mx = (double)(this.sumResults()) / size;
+            /*foreach (var thread in threadManager.getThreads())
+            {
+                thread.Terminate();
+            }*/
             startStep2();
             /*for (int i=0; i < Results.Count; i++)
                 Console.WriteLine(Results[i]);*/
+
         }
         public void startStep2 ()
         {
             Step2 step2 = new Step2(size, this.getMx(), this.Results[0].a);
             step2.Run(size);
-           // Thread.Sleep(5000);
         }
         
     }

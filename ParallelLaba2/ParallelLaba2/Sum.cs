@@ -7,7 +7,6 @@ namespace ParallelLaba1
 {
     class Sum
     {
-       // static readonly Random _rnd = new Random();
         private int resultOfSum;
         private double sumDifInSquare;
         public int[] a;

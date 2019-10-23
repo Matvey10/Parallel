@@ -9,9 +9,9 @@ namespace ParallelLaba1
 {
     public class TaskManager
     {
-        private readonly ConcurrentQueue<Action> _actionsQueue = new ConcurrentQueue<Action>();
+        private ConcurrentQueue<Action> _actionsQueue;
         private readonly AutoResetEvent _waitHandler = new AutoResetEvent(false);
-        private readonly Thread _mainThread;
+        //private readonly Thread _mainThread;
 
         private List<WorkThread> _idleThreads;
         private List<WorkThread> _workingThreads;
@@ -34,6 +34,10 @@ namespace ParallelLaba1
                 wt.WorkDone += SubThreadWorkDoneHandler;
                 _idleThreads.Add(wt);
             }
+        }
+        public List<WorkThread> getThreads()
+        {
+            return _idleThreads;
         }
 
         private void SubThreadWorkDoneHandler(WorkThread workThread)
@@ -62,7 +66,24 @@ namespace ParallelLaba1
             }
         }
 
-
+        public void AddTasks (ref ConcurrentQueue<Action> _actionsQueue)
+        {
+            //lock (_locker)
+            //{
+                this._actionsQueue = _actionsQueue;
+                if (this._actionsQueue.TryDequeue(out Action result))
+                {
+                    if (_idleThreads.Count > 0)
+                    {
+                        WorkThread wt = _idleThreads[_idleThreads.Count - 1];
+                        _idleThreads.Remove(wt);
+                        _workingThreads.Add(wt);
+                        wt.Do(result);
+                    }
+                }
+            //}
+            
+        }
         public void AddTask(Action action)
         {
             lock (_locker)
