@@ -46,12 +46,12 @@ namespace ParallelLaba1
         public void Run(int size)
         {
             threadManager = new TaskManager(10);
-            threadManager.TaskManagerWorkDone += WorkDone;         
+            threadManager.TaskManagerWorkDone += WorkDone;
+            _actionsQueue = new ConcurrentQueue<Action>();
             for (int i = 0; i < size / 1000; i++)
             {
                 //Sum sum = new Sum(X);
                 var number = i;
-                _actionsQueue = new ConcurrentQueue<Action>();
                 _actionsQueue.Enqueue(() => Results[number].sumValues(number * 1000, (number * 1000) + 999));
                 //threadManager.AddTask(() => Results[number].sumValues(number * 1000, (number * 1000) + 999));//добавили задание по суммированию части массива
             }
@@ -61,8 +61,8 @@ namespace ParallelLaba1
         public void WorkDone()
         {
             Console.WriteLine("Менеджер завершил все задачи.");
-            /*for (int i = 0; i < this.Results.Count; i++)
-                Console.WriteLine($"сумма = {this.Results[i].getResult()}");*/
+            for (int i = 0; i < this.Results.Count; i++)
+                Console.WriteLine($"сумма = {this.Results[i].getResult()}");
             Console.WriteLine($"итоговая сумма = {this.sumResults()}");
             mx = (double)(this.sumResults()) / size;
             /*foreach (var thread in threadManager.getThreads())

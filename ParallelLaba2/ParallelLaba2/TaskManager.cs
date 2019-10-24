@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-
 namespace ParallelLaba1
 {
     public class TaskManager
@@ -32,7 +31,7 @@ namespace ParallelLaba1
             {
                 var wt = new WorkThread();
                 wt.WorkDone += SubThreadWorkDoneHandler;
-                _idleThreads.Add(wt);
+                _workingThreads.Add(wt);
             }
         }
         public List<WorkThread> getThreads()
@@ -70,17 +69,18 @@ namespace ParallelLaba1
         {
             //lock (_locker)
             //{
-                this._actionsQueue = _actionsQueue;
+            this._actionsQueue = _actionsQueue;
+            ConcurrentQueue<Action> someActions = new ConcurrentQueue<Action>();
+            for (int i = 0; i < 10; i++)
+            {
                 if (this._actionsQueue.TryDequeue(out Action result))
-                {
-                    if (_idleThreads.Count > 0)
-                    {
-                        WorkThread wt = _idleThreads[_idleThreads.Count - 1];
-                        _idleThreads.Remove(wt);
-                        _workingThreads.Add(wt);
-                        wt.Do(result);
-                    }
-                }
+                    someActions.Enqueue(result);
+            }
+            foreach (var wt in _workingThreads)
+            {
+                if (someActions.TryDequeue(out Action result))
+                    wt.Do(result);
+            }
             //}
             
         }
