@@ -1,0 +1,6 @@
+C:\Users\user\source\repos\ProcessTest\ProcessTest\bin\Debug\ProcessTest.exe.config
+C:\Users\user\source\repos\ProcessTest\ProcessTest\bin\Debug\ProcessTest.exe
+C:\Users\user\source\repos\ProcessTest\ProcessTest\bin\Debug\ProcessTest.pdb
+C:\Users\user\source\repos\ProcessTest\ProcessTest\obj\Debug\ProcessTest.csprojAssemblyReference.cache
+C:\Users\user\source\repos\ProcessTest\ProcessTest\obj\Debug\ProcessTest.exe
+C:\Users\user\source\repos\ProcessTest\ProcessTest\obj\Debug\ProcessTest.pdb

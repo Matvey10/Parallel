@@ -1,0 +1,11 @@
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\bin\Debug\ProcessTest2.exe.config
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\bin\Debug\ProcessTest2.exe
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\bin\Debug\ProcessTest2.pdb
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\bin\Debug\EntityFramework.dll
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\bin\Debug\EntityFramework.SqlServer.dll
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\bin\Debug\EntityFramework.xml
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\bin\Debug\EntityFramework.SqlServer.xml
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\obj\Debug\ProcessTest2.csprojAssemblyReference.cache
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\obj\Debug\ProcessTest2.csproj.CopyComplete
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\obj\Debug\ProcessTest2.exe
+C:\Users\user\source\repos\ProcessTest2\ProcessTest2\obj\Debug\ProcessTest2.pdb

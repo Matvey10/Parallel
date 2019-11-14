@@ -45,6 +45,7 @@ namespace ParallelLaba1
 
         public void WorkLoop()
         {
+            Console.WriteLine("thread work");
             do
             {
                 _waitHandler.WaitOne();

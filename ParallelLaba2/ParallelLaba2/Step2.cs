@@ -30,10 +30,10 @@ namespace ParallelLaba1
             TaskManager threadManager = new TaskManager(10);
             threadManager.TaskManagerWorkDone += ComputeDxDone;
             _actionsQueue = new ConcurrentQueue<Action>();
-            for (int i = 0; i < size / 1000; i++)
+            for (int i = 0; i < size / 10000; i++)
             {
                 var number = i;
-                _actionsQueue.Enqueue(() => Results[number].squareDifValues(number * 1000, (number * 1000) + 999, mx));
+                _actionsQueue.Enqueue(() => Results[number].squareDifValues(number * 10000, (number * 10000) + 9999, mx));
                 //threadManager.AddTask(() => Results[number].sumValues(number * 1000, (number * 1000) + 999));//добавили задание по суммированию части массива
                 //threadManager.AddTask(() => Results[number].squareDifValues(number * 1000, (number * 1000) + 999, mx));//добавили задание по суммированию части массива
                 //Console.WriteLine("Ожидание завершения");
@@ -50,8 +50,8 @@ namespace ParallelLaba1
         public void ComputeDxDone()
         {
             Console.WriteLine("Менеджер завершил работу по вычислению выборочной дисперсии");
-            for (int i = 0; i < this.Results.Count; i++)
-                Console.WriteLine($"сумма = {this.Results[i].getSumDifInSquare()}");
+            /*for (int i = 0; i < this.Results.Count; i++)
+                Console.WriteLine($"сумма = {this.Results[i].getSumDifInSquare()}");*/
             Console.WriteLine($"итоговая сумма = {this.sumResults()}");
             Dx = (double)(this.sumResults()) / size;
             /*foreach (var thread in threadManager.getThreads())

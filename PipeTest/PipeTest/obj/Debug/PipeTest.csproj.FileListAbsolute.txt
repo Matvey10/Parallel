@@ -1,0 +1,6 @@
+C:\Users\user\source\repos\PipeTest\PipeTest\bin\Debug\PipeTest.exe.config
+C:\Users\user\source\repos\PipeTest\PipeTest\bin\Debug\PipeTest.exe
+C:\Users\user\source\repos\PipeTest\PipeTest\bin\Debug\PipeTest.pdb
+C:\Users\user\source\repos\PipeTest\PipeTest\obj\Debug\PipeTest.csprojAssemblyReference.cache
+C:\Users\user\source\repos\PipeTest\PipeTest\obj\Debug\PipeTest.exe
+C:\Users\user\source\repos\PipeTest\PipeTest\obj\Debug\PipeTest.pdb

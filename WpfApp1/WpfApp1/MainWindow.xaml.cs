@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -21,17 +22,18 @@ namespace WpfApp1
     /// </summary>
     public partial class MainWindow : Window
     {
-        const int i_size = 50;
-        const int j_size = 50;
-        const int cellSize = 7;
-        const int generations = 10;
+        const int i_size = 400;
+        const int j_size = 200;
+        const int cellSize = 3;
+        const int generations = 25;
         const int butWidth = 100;
         const int butHeight = 30;
         private byte[,] cellArray = new byte[i_size, j_size]; 
         private byte[,] tmpCellArray = new byte[i_size, j_size]; 
         private Button[,] butnArray = new Button[i_size, j_size]; 
         private int generation = 0; 
-        //public delegate void GoLifeDelegate();
+        public delegate void RepaintDelegate();
+        public event RepaintDelegate RepaintDone;
         public MainWindow()
         {
             InitializeComponent();
@@ -62,6 +64,15 @@ namespace WpfApp1
             butnRandom.Margin = new Thickness(butWidth*2, 0, 0, 0);
             butnRandom.Click += butnRandomLifeClick;
             grid1.Children.Add(butnRandom);
+            Button butnX= new Button();
+            butnX.Height = butHeight;
+            butnX.Width = butWidth;
+            butnX.Content = "XLife";
+            butnX.VerticalAlignment = VerticalAlignment.Top;
+            butnX.HorizontalAlignment = HorizontalAlignment.Left;
+            butnX.Margin = new Thickness(butWidth*3, 0, 0, 0);
+            butnX.Click += butnXifeClick;
+            grid1.Children.Add(butnX);
             for (int i = 0; i < i_size; i++)
                 for (int j = 0; j < j_size; j++)
                 {
@@ -71,9 +82,35 @@ namespace WpfApp1
                     butnArray[i, j].VerticalAlignment = VerticalAlignment.Top;
                     butnArray[i, j].HorizontalAlignment = HorizontalAlignment.Left;
                     butnArray[i, j].Margin = new Thickness(i * cellSize, j * cellSize + 40, 0, 0);
+                    butnArray[i, j].Tag = new Coordinates(i, j);
+                    butnArray[i, j].Click += Button_Click;
                     grid1.Children.Add(butnArray[i, j]);
                 }
             NewLife();
+            //RepaintDone += RepaintTextBox;
+        }
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            Button butn = (Button)sender;
+            Coordinates cs = (Coordinates)butn.Tag;
+            butn.Background = new SolidColorBrush(Colors.White);
+            cellArray[cs.i, cs.j] = 1;
+            tmpCellArray[cs.i, cs.j] = cellArray[cs.i, cs.j];
+        }
+        private void butnXifeClick(object sender, EventArgs e)
+        {
+            for (int i = 0; i < i_size; i++)
+            {
+                for (int j = 0; j < j_size; j++)
+                {
+                    if (i == i_size / 2 | j == j_size/2)
+                        cellArray[i, j] = 1;
+                    else
+                        cellArray[i, j] = 0;
+                    tmpCellArray[i, j] = cellArray[i, j];
+                    butnArray[i, j].Background = cellArray[i, j] == 1 ? new SolidColorBrush(Colors.White) : new SolidColorBrush(Colors.Black);
+                }
+            }
         }
 
         /*private void ButnGo_Click(object sender, RoutedEventArgs e)
@@ -99,9 +136,10 @@ namespace WpfApp1
             {
                 for (int j = 0; j < j_size; j++)
                 {
+                    if (cellArray[i,j] == 1)
+                        butnArray[i, j].Background = new SolidColorBrush(Colors.Black);
                     cellArray[i, j] = 0;
                     tmpCellArray[i, j] = 0;
-                    butnArray[i, j].Background = new SolidColorBrush(Colors.Black);
                 }
             }
             textBox1.Text = "Game of Life";
@@ -139,18 +177,33 @@ namespace WpfApp1
             {
                 generation++;
                 NextGeneration();
+                this.Dispatcher.Invoke(() => { textBox1.Text = "Generation №" + generation.ToString(); });
+                Thread.Sleep(1000);
             }
         }
+       /* public void RepaintTextBox()
+        {
+            this.Dispatcher.Invoke(() => { textBox1.Text = "Generation №" + generation.ToString(); });
+        }*/
         public void NextGeneration()
         {
+            ParallelLoopResult result = Parallel.For(0, i_size, Repaint);
             for (int i = 0; i < i_size; i++)
+                for (int j = 0; j < j_size; j++)
+                {
+                    cellArray[i, j] = tmpCellArray[i, j];
+                }
+            //RepaintDone?.Invoke();
+            /*if (result.IsCompleted)
+                this.Dispatcher.Invoke(() => { textBox1.Text = "Generation №" + (generation).ToString(); });*/
+            /*for (int i = 0; i < i_size; i++)
                 for (int j = 0; j < j_size; j++)
                 {
                     neighborCount(i, j, out int neighbors);
                     if ((neighbors == 3) && (cellArray[i, j] == 0))
                     {
                         tmpCellArray[i, j] = 1;
-                        //this.Dispatcher.Invoke(() => { butnArray[i, j].Background = new SolidColorBrush(Colors.White); });
+                        this.Dispatcher.Invoke(() => { butnArray[i, j].Background = new SolidColorBrush(Colors.White); });
                     }
                     if (((neighbors == 3) || (neighbors == 2)) && (cellArray[i, j] == 1))
                     {
@@ -159,51 +212,58 @@ namespace WpfApp1
                     if ((neighbors < 2) && (cellArray[i, j] == 1))
                     {
                         tmpCellArray[i, j] = 0;
-                        //this.Dispatcher.Invoke(() => { butnArray[i, j].Background = new SolidColorBrush(Colors.Black); });
+                        this.Dispatcher.Invoke(() => { butnArray[i, j].Background = new SolidColorBrush(Colors.Black); });
                     }
                     if ((neighbors > 3) && (cellArray[i, j] == 1))
                     {
                         tmpCellArray[i, j] = 0;
-                        //this.Dispatcher.Invoke(() => { butnArray[i, j].Background = new SolidColorBrush(Colors.Black); });
-                    }
-                }
-
-            for (int i = 0; i < i_size; i++)
-                for (int j = 0; j < j_size; j++)
-                {
-                    cellArray[i, j] = tmpCellArray[i, j];
-                    if (cellArray[i, j] == 1)
-                        this.Dispatcher.Invoke(() => { butnArray[i, j].Background = new SolidColorBrush(Colors.White); });
-                    else
                         this.Dispatcher.Invoke(() => { butnArray[i, j].Background = new SolidColorBrush(Colors.Black); });
-                }
-            this.Dispatcher.Invoke(() => { textBox1.Text = "Generation №" + (generation).ToString(); });
+                    }
+                }*/
+
+
+            // this.Dispatcher.Invoke(() => { textBox1.Text = "Generation №" + (generation).ToString(); });
         }
-        /*public void NextGeneration()
+        
+        private void Repaint(int i)
         {
-            for (int i = 0; i < i_size; i++)
+            Stopwatch sw = new Stopwatch();
+            Stopwatch sw2 = new Stopwatch();
+            sw.Start();
+            for (int j = 0; j < j_size; j++)
             {
-                for (int j = 0; j < j_size; j++)
+                neighborCount(i, j, out int neighbors);
+                if ((neighbors == 3) && (cellArray[i, j] == 0))
                 {
-                    neighborCount(i, j, out int neighbors);
-                    if ((neighbors == 3) && (cellArray[i, j] == 0)) { tmpCellArray[i, j] = 1; }
-                    if (((neighbors == 3) || (neighbors == 2)) && (cellArray[i, j] == 1)) { tmpCellArray[i, j] = 1; }
-                    if ((neighbors < 2) && (cellArray[i, j] == 1)) { tmpCellArray[i, j] = 0; }
-                    if ((neighbors > 3) && (cellArray[i, j] == 1)) { tmpCellArray[i, j] = 0; }
+                    tmpCellArray[i, j] = 1;
+                    sw2.Start();
+                    this.Dispatcher.Invoke(() => { butnArray[i, j].Background = new SolidColorBrush(Colors.White); });
+                    sw2.Start();
+                }
+                else if (((neighbors == 3) || (neighbors == 2)) && (cellArray[i, j] == 1))
+                {
+                    tmpCellArray[i, j] = 1;
+                }
+                else if ((neighbors < 2) && (cellArray[i, j] == 1))
+                {
+                    tmpCellArray[i, j] = 0;
+                    sw2.Start();
+                    this.Dispatcher.Invoke(() => { butnArray[i, j].Background = new SolidColorBrush(Colors.Black); });
+                    sw2.Stop();
+                }
+                else if ((neighbors > 3) && (cellArray[i, j] == 1))
+                {
+                    tmpCellArray[i, j] = 0;
+                    sw2.Start();
+                    this.Dispatcher.Invoke(() => { butnArray[i, j].Background = new SolidColorBrush(Colors.Black); });
+                    sw2.Stop();
                 }
             }
-            for (int i = 0; i < i_size; i++)
-            {
-                for (int j = 0; j < j_size; j++)
-                {
-                    cellArray[i, j] = tmpCellArray[i, j];
-                    if (cellArray[i, j] == 1)
-                        butnArray[i, j].Background = new SolidColorBrush(Colors.White); 
-                    else 
-                        butnArray[i, j].Background = new SolidColorBrush(Colors.Black);
-                }
-            }
-        }*/
+
+            sw.Stop();
+            Console.WriteLine($"Sw:{sw.Elapsed}");
+            Console.WriteLine($"Sw2:{sw2.Elapsed}");
+        }
         private void neighborCount(int a, int b, out int neighbors)
         {
             neighbors = 0;
@@ -217,14 +277,16 @@ namespace WpfApp1
             if (a > 0 && b > 0 && cellArray[a - 1, b - 1] == 1) { neighbors++; }
         }
     }
-}
-    /*private void Button_Click(object sender, RoutedEventArgs e)
+    class Coordinates
+    {
+        public int i { get; set; }
+        public int j { get; set; }
+        public Coordinates (int i, int j)
         {
-            string text = textBox1.Text;
-            if (text != "")
-            {
-                MessageBox.Show(text);
-            }
-        }*/
-
+            this.i = i;
+            this.j = j;
+        }
+    }
+}
+ 
 
