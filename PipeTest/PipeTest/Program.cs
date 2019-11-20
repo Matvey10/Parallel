@@ -14,6 +14,8 @@ namespace PipeTest
     class ProgramPipeTest
     {
         const int numThreads = 4;
+        static ResultsList Results;
+        static int finishedTasks = 0;
         private static List<Process> processes = new List<Process>();
         static void Main(string[] args)
         {
@@ -30,11 +32,13 @@ namespace PipeTest
         { 
             //запускаю 4 потока-сервера, каждый из которых работает с 1 клиентом
             int i;
+            Results= new ResultsList(); //хранит результаты факториалов
             Thread[] servers = new Thread[numThreads];
             for (i = 0; i < numThreads; i++)
             {
-                servers[i] = new Thread((ServerThread));
-                servers[i].Start();
+                int[] Values = { i + 3, i + 4, i + 5 };
+                servers[i] = new Thread((new ParameterizedThreadStart(ServerThread)));
+                servers[i].Start(Values);
             }
             Thread.Sleep(1000);
             for (int j = 0; j < numThreads; j++)
@@ -42,13 +46,12 @@ namespace PipeTest
                 Process process = new Process();
                 process.StartInfo.FileName = Process.GetCurrentProcess().MainModule.ModuleName;
                 Console.WriteLine(Process.GetCurrentProcess().MainModule.ModuleName);
-                process.StartInfo.Arguments = $"{j+5}";
+                process.StartInfo.Arguments = "1";
                 process.StartInfo.CreateNoWindow = false;
                 process.StartInfo.UseShellExecute = true;
                 process.EnableRaisingEvents = true;
                 //process.Exited += ProcessOnExited;
                 processes.Add(process);
-                //process.Start();
             }
             foreach (var pr in processes)
                 pr.Start();
@@ -59,7 +62,7 @@ namespace PipeTest
                 {
                     if (servers[j] != null)
                     {
-                        if (servers[j].Join(10000)) // если завершился j-ий поток или через 250 мс
+                        if (servers[j].Join(1000)) // если завершился j-ий поток или через 250 мс
                         {
                             Console.WriteLine("Server thread[{0}] finished.", servers[j].ManagedThreadId);
                             servers[j] = null;
@@ -71,66 +74,76 @@ namespace PipeTest
             Console.WriteLine("\nServer threads exhausted, exiting.");
             Console.ReadKey();
         }
-        public static void ServerThread()
+        public static void ServerThread(object obj)
         {
-            //int n = (int)obj;
-            // Create a name pipe
-            //using (NamedPipeServerStream pipeServer= new NamedPipeServerStream("mytestpipe", PipeDirection.InOut, numThreads))
-            //{
-                NamedPipeServerStream pipeServer = new NamedPipeServerStream("mytestpipe", PipeDirection.InOut, numThreads);
-                Console.WriteLine("[Server] Pipe created {0}", pipeServer.GetHashCode());
-                pipeServer.WaitForConnection();
-                Console.WriteLine("[Server] Pipe connection established");
-                while (true)
-                {
-                    //using (StreamReader sr = new StreamReader(pipeServer)) //пишем в pipe
-                    //{
-                        try
-                        {
-                            StreamReader sr = new StreamReader(pipeServer);
-                            string input = sr.ReadLine();
-                            //Console.WriteLine(input);
-                            if (String.IsNullOrEmpty(input) | input == "")
-                            {
-                                Console.WriteLine(input+"null");
-                                break;
-                            } 
-                            int fn = Convert.ToInt32(input);
-                            Console.WriteLine($"факториал = {fn}");
-                        }
-                        catch (IOException e)
-                        {
-                            Console.WriteLine(e.Message);
-                        }
-                    //}
-                //}
-            }
-
-            Console.WriteLine("Connection lost");
-        }
-
-       static void ClientProcess(string[] args)
-        {
-            int k = Convert.ToInt32(args[0]);
-            using (NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "mytestpipe", PipeDirection.InOut))
+            int[] Values = (int[])obj;
+            NamedPipeServerStream pipeServer = new NamedPipeServerStream("mytestpipe", PipeDirection.InOut, numThreads);
+            Console.WriteLine("[Server] Pipe created {0}", pipeServer.GetHashCode());
+            pipeServer.WaitForConnection();
+            Console.WriteLine("[Server] Pipe connection established");
+            StreamWriter sw = new StreamWriter(pipeServer);
+            StreamReader sr = new StreamReader(pipeServer);
+            using (var mutex = new Mutex(false, "MyMutex1"))
             {
-                Console.WriteLine("Connecting to server...\n");
-                pipeClient.Connect();
-                Console.WriteLine("Connect is succesful...\n");
-                using (StreamWriter sw = new StreamWriter(pipeClient)) //читаем из pipe
+                foreach (int val in Values)
                 {
                     try
                     {
-                        int n = Factorial(k);
-                        sw.WriteLine(n);
+                        sw.WriteLine(val);
                         sw.Flush();
-                        sw.WriteLine("");
-                        Thread.Sleep(500);
+                        string input = sr.ReadLine();
+                        int fn = Convert.ToInt32(input);
+                        Console.WriteLine($"факториал = {fn}");
+                        mutex.WaitOne();
+                        Results.AddResult(fn);
+                        Console.WriteLine($"Добавили элемент {fn}");
+                        finishedTasks++;
+                        if (finishedTasks == 3*numThreads)
+                        {
+                            Console.WriteLine("Все посчитано");
+                            foreach (var res in Results.getResults())
+                            {
+                                Console.WriteLine(res);
+                            }
+                        }
+                        mutex.ReleaseMutex();
                     }
                     catch (IOException e)
                     {
                         Console.WriteLine(e.Message);
                     }
+                }
+                sw.WriteLine("");
+                sw.Flush();
+            }
+            //pipeServer.Close();
+            Console.WriteLine("Connection lost");
+        }
+        
+       static void ClientProcess(string[] args)
+        {
+            //int k = Convert.ToInt32(args[0]);
+            NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "mytestpipe", PipeDirection.InOut);
+            Console.WriteLine("Connecting to server...\n");
+            pipeClient.Connect();
+            Console.WriteLine("Connect is succesful...\n");
+            StreamWriter sw = new StreamWriter(pipeClient);
+            StreamReader sr = new StreamReader(pipeClient);
+            string input;
+            while ((input=sr.ReadLine()) != "")
+            {
+                try
+                {
+                    int k = Convert.ToInt32(input);
+                    int n = Factorial(k);
+                    sw.WriteLine(n);
+                    sw.Flush();
+                    Console.WriteLine($"факториал {n}");
+                    //Thread.Sleep(500);
+                }
+                catch (IOException e)
+                {
+                    Console.WriteLine(e.Message);
                 }
             }
             Console.ReadKey();
@@ -172,7 +185,10 @@ namespace PipeTest
         }
 
     }
+
+    
 }
+
 /* 
  *  try
                     {
