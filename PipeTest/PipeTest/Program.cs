@@ -13,10 +13,15 @@ namespace PipeTest
     // его в серверный поток
     class ProgramPipeTest
     {
-        const int numThreads = 4;
+        const int numThreads = 10;
         static ResultsList Results;
+        static List<NamedPipeServerStream> pipes;
         static int finishedTasks = 0;
         private static List<Process> processes = new List<Process>();
+        private static List<int> Values;
+        private static int Size;
+        private static int numOfStep = 1;
+        private static double mx;
         static void Main(string[] args)
         {
             if (args.Length == 0)
@@ -28,34 +33,101 @@ namespace PipeTest
                 ClientProcess(args);
             }
         }
+        class ThreadStartInfo
+        {
+            private int startPoint;
+            private int endPoint;
+            public ThreadStartInfo(int startPoint, int endPoint)
+            {
+                this.startPoint = startPoint;
+                this.endPoint = endPoint;
+            }
+            public int getStartPoint()
+            {
+                return startPoint;
+            }
+            public int getEndPoint()
+            {
+                return endPoint;
+            }
+        }
+
         public static void ServerProcess()
         { 
-            //запускаю 4 потока-сервера, каждый из которых работает с 1 клиентом
+            //запускаю 10 потока-сервера, каждый из которых работает с 1 клиентом
             int i;
-            Results= new ResultsList(); //хранит результаты факториалов
+            Console.WriteLine("Введите кол-во элементов выборки");
+            Size = Convert.ToInt32(Console.ReadLine());
+            int dimension = Size / numThreads;
+            Results= new ResultsList(); //хранит результаты сумм
             Thread[] servers = new Thread[numThreads];
+            pipes = new List<NamedPipeServerStream>();
+            string writePath = "C:\\Users\\user\\source\\repos\\PipeTest\\data.txt";
+            FileInfo file1 = new FileInfo(writePath);
+            if (file1.Exists)
+            {
+                try
+                {
+                    using (StreamReader sr = new StreamReader(writePath, System.Text.Encoding.Default))
+                    {
+                        string line;
+                        while ((line = sr.ReadLine()) != null)
+                        {
+                            int val = Convert.ToInt32(line);
+                            Values.Add(val);//new 
+                        }
+                    }
+                }
+                catch (IOException ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Values = new List<int>();
+                Random rand = new Random();
+                for (int j = 0; j < Size; j++)
+                {
+                    Values.Add(rand.Next(1, 1000));
+                }
+            }            
             for (i = 0; i < numThreads; i++)
             {
-                int[] Values = { i + 3, i + 4, i + 5 };
+                var numOfThread = i;
+                NamedPipeServerStream pipeServer = new NamedPipeServerStream("mytestpipe"+numOfThread.ToString(), PipeDirection.InOut, numThreads);
+                pipes.Add(pipeServer);
+                int startPoint = i * dimension;
+                int endPoint = startPoint + dimension - 1;
+                ThreadStartInfo threadStartInfo = new ThreadStartInfo(startPoint, endPoint);
                 servers[i] = new Thread((new ParameterizedThreadStart(ServerThread)));
-                servers[i].Start(Values);
+                servers[i].Start(threadStartInfo);
             }
             Thread.Sleep(1000);
             for (int j = 0; j < numThreads; j++)
             {
+                var numOfThread = j; // номер потока связанного с создаваемым процессом
                 Process process = new Process();
                 process.StartInfo.FileName = Process.GetCurrentProcess().MainModule.ModuleName;
                 Console.WriteLine(Process.GetCurrentProcess().MainModule.ModuleName);
-                process.StartInfo.Arguments = "1";
+                int startPoint = j * dimension;
+                int endPoint = startPoint + dimension - 1;
+                if (numOfStep == 1)
+                {
+                    process.StartInfo.Arguments = $"{numOfThread} {numOfStep}";
+                }
+                else
+                {
+                    process.StartInfo.Arguments = $"{numOfThread} {numOfStep} {mx}";
+                }
                 process.StartInfo.CreateNoWindow = false;
                 process.StartInfo.UseShellExecute = true;
                 process.EnableRaisingEvents = true;
-                //process.Exited += ProcessOnExited;
+                process.Exited += ProcessOnExited;
                 processes.Add(process);
             }
             foreach (var pr in processes)
                 pr.Start();
-            //i = numThreads;
             while (i > 0)
             {
                 for (int j = 0; j < numThreads; j++)
@@ -74,10 +146,52 @@ namespace PipeTest
             Console.WriteLine("\nServer threads exhausted, exiting.");
             Console.ReadKey();
         }
+        private static void ProcessOnExited(object sender, EventArgs e)
+        {
+            //processes.Remove((Process)sender);
+            using (var mutex = new Mutex(false, "MyMutex2"))
+            {
+                mutex.WaitOne();
+                finishedTasks++;
+                Console.WriteLine($"Exited type:{sender.GetType().FullName}");
+                Console.WriteLine($"Количество отработанных процессов:{finishedTasks}");
+                if (finishedTasks == numThreads)
+                {
+                    Console.WriteLine("Все посчитано");
+                    foreach (var res in Results.getResults())
+                    {
+                        Console.WriteLine(res);
+                    }
+                    processes.Clear();
+                    if (numOfStep == 1)
+                    {
+                        mx = ComputeMx();
+                        Console.WriteLine($"мат ожидание = {mx}");
+                        numOfStep = 2;
+                        Results.Clear();
+                        finishedTasks = 0;
+                        ComputeDxStart();
+                    }
+                    else if (numOfStep == 2)
+                    {
+                        double dx = ComputeDx();
+                        Console.WriteLine($"дисперсия = {dx}");
+                    }
+                }
+                mutex.ReleaseMutex();
+            }
+            Console.ReadKey();
+        }
         public static void ServerThread(object obj)
         {
-            int[] Values = (int[])obj;
-            NamedPipeServerStream pipeServer = new NamedPipeServerStream("mytestpipe", PipeDirection.InOut, numThreads);
+            ThreadStartInfo threadStartInfo = (ThreadStartInfo)obj;
+            int startPoint = threadStartInfo.getStartPoint();
+            int endPoint = threadStartInfo.getEndPoint();
+            Console.WriteLine($"start {startPoint} end {endPoint}");
+            NamedPipeServerStream pipeServer = pipes[0];
+            pipes.RemoveAt(0);
+            //pipeServer.WaitForPipeDrain
+            //NamedPipeServerStream pipeServer = new NamedPipeServerStream("mytestpipe", PipeDirection.InOut, numThreads);
             Console.WriteLine("[Server] Pipe created {0}", pipeServer.GetHashCode());
             pipeServer.WaitForConnection();
             Console.WriteLine("[Server] Pipe connection established");
@@ -85,28 +199,12 @@ namespace PipeTest
             StreamReader sr = new StreamReader(pipeServer);
             using (var mutex = new Mutex(false, "MyMutex1"))
             {
-                foreach (int val in Values)
+                for (int i = startPoint; i <= endPoint; i++ )
                 {
                     try
                     {
-                        sw.WriteLine(val);
+                        sw.WriteLine(Values[i]);//закончил здесь, надо передать все числа процессу
                         sw.Flush();
-                        string input = sr.ReadLine();
-                        int fn = Convert.ToInt32(input);
-                        Console.WriteLine($"факториал = {fn}");
-                        mutex.WaitOne();
-                        Results.AddResult(fn);
-                        Console.WriteLine($"Добавили элемент {fn}");
-                        finishedTasks++;
-                        if (finishedTasks == 3*numThreads)
-                        {
-                            Console.WriteLine("Все посчитано");
-                            foreach (var res in Results.getResults())
-                            {
-                                Console.WriteLine(res);
-                            }
-                        }
-                        mutex.ReleaseMutex();
                     }
                     catch (IOException e)
                     {
@@ -115,6 +213,14 @@ namespace PipeTest
                 }
                 sw.WriteLine("");
                 sw.Flush();
+                string input = sr.ReadLine();
+                Console.WriteLine($"переданная сумма {input}");
+                double sum = Convert.ToDouble(input);
+                Console.WriteLine($"сумма = {sum}");
+                mutex.WaitOne();
+                Results.AddResult(sum);
+                Console.WriteLine($"Добавили сумму {sum}");
+                mutex.ReleaseMutex();
             }
             //pipeServer.Close();
             Console.WriteLine("Connection lost");
@@ -122,66 +228,95 @@ namespace PipeTest
         
        static void ClientProcess(string[] args)
         {
-            //int k = Convert.ToInt32(args[0]);
-            NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "mytestpipe", PipeDirection.InOut);
+            NamedPipeClientStream pipeClient = new NamedPipeClientStream(".", "mytestpipe"+args[0].ToString(), PipeDirection.InOut);
+            if (Convert.ToInt32(args[0]) == 2) { Thread.Sleep(3000); }
             Console.WriteLine("Connecting to server...\n");
             pipeClient.Connect();
             Console.WriteLine("Connect is succesful...\n");
             StreamWriter sw = new StreamWriter(pipeClient);
             StreamReader sr = new StreamReader(pipeClient);
             string input;
-            while ((input=sr.ReadLine()) != "")
+            double sum = 0;
+            if (args[1] == "1")
             {
-                try
+                while ((input = sr.ReadLine()) != "")
                 {
                     int k = Convert.ToInt32(input);
-                    int n = Factorial(k);
-                    sw.WriteLine(n);
-                    sw.Flush();
-                    Console.WriteLine($"факториал {n}");
-                    //Thread.Sleep(500);
-                }
-                catch (IOException e)
-                {
-                    Console.WriteLine(e.Message);
+                    sum += k;
+                    //Console.WriteLine($"{k} текущая сумма {sum}");
                 }
             }
+            else
+            {
+                double mx = Convert.ToDouble(args[2]);
+                while ((input = sr.ReadLine()) != "")
+                {
+                    double k = Convert.ToDouble(input);
+                    sum += Math.Pow(k-mx,2);
+                    //Console.WriteLine($"{k} текущая сумма {sum}");
+                }
+            }
+            Console.WriteLine($"итоговая частичная сумма {sum}");
+            sw.WriteLine(sum);
+            sw.Flush();
             Console.ReadKey();
         }
-
-       /* public void ThreadStartClient(object obj)
+        static double ComputeMx()
         {
-            using (NamedPipeClientStream pipeStream = new NamedPipeClientStream("mytestpipe"))
+            double mx = 0;
+            foreach (int res in Results.getResults())
             {
-                // The connect function will indefinately wait for the pipe to become available
-                // If that is not acceptable specify a maximum waiting time (in ms)
-                pipeStream.Connect();
-
-                Console.WriteLine("[Client] Pipe connection established");
-                using (StreamWriter sw = new StreamWriter(pipeStream))
+                mx += res;
+            }
+            return mx/Size;
+        }
+        static double ComputeDx()
+        {
+            double dx = 0;
+            foreach (int res in Results.getResults())
+            {
+                dx += res;
+            }
+            return dx / Size;
+        }
+        static void ComputeDxStart ()
+        {
+            Thread[] servers = new Thread[numThreads];
+            for (int i = 0; i < numThreads; i++)
+            {
+                var numOfThread = i;
+                NamedPipeServerStream pipeServer = new NamedPipeServerStream("mytestpipe" + numOfThread.ToString(), PipeDirection.InOut, numThreads);
+                pipes.Add(pipeServer);
+                int dimension = Size / numThreads;
+                int startPoint = i * dimension;
+                int endPoint = startPoint + dimension - 1;
+                ThreadStartInfo threadStartInfo = new ThreadStartInfo(startPoint, endPoint);
+                servers[i] = new Thread((new ParameterizedThreadStart(ServerThread)));
+                servers[i].Start(threadStartInfo);
+            }
+            Thread.Sleep(1000);
+            for (int j = 0; j < numThreads; j++)
+            {
+                var numOfThread = j; // номер потока связанного с создаваемым процессом
+                Process process = new Process();
+                process.StartInfo.FileName = Process.GetCurrentProcess().MainModule.ModuleName;
+                Console.WriteLine(Process.GetCurrentProcess().MainModule.ModuleName);
+                if (numOfStep == 1)
                 {
-                    sw.AutoFlush = true;
-                    string temp;
-                    Console.WriteLine(
-                       "Please type a message and press [Enter], or type 'quit' to exit the program");
-                    while ((temp = Console.ReadLine()) != null)
-                    {
-                        sw.WriteLine(temp);
-                        if (temp == "quit") break;
-                        
-                    }
+                    process.StartInfo.Arguments = $"{numOfThread} {numOfStep}";
                 }
+                else
+                {
+                    process.StartInfo.Arguments = $"{numOfThread} {numOfStep} {mx}";
+                }
+                process.StartInfo.CreateNoWindow = false;
+                process.StartInfo.UseShellExecute = true;
+                process.EnableRaisingEvents = true;
+                process.Exited += ProcessOnExited;
+                processes.Add(process);
             }
-        }*/
-        public static int Factorial(int n)
-        {
-            //int n = (int)obj;
-            int k = 1;
-            for (int i = 1; i <=n; i++)
-            {
-                k *= i;
-            }
-            return k;
+            foreach (var pr in processes)
+                pr.Start();
         }
 
     }
@@ -191,16 +326,6 @@ namespace PipeTest
 
 /* 
  *  try
-                    {
-                        string temp;
-                        // We read a line from the pipe and print it together with the current time
-                        while ((temp = sr.ReadLine()) != null)
-                        {
-                            if (temp == "quit")
-                                break;
-                            Console.WriteLine("{0}: {1}", DateTime.Now, temp);
-                        }
-                    }
  * static int Main(string[] args)
         {
             if (args.Length == 0)
